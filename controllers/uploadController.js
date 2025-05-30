@@ -44,17 +44,17 @@ export const processUploadedFile = async (req, res) => {
     const { stdout, stderr } = await execAsync(cmd);
 
     // 🔍 Поиск пути к выходному файлу
-        let outputFilePath = null;
-        const stdoutLines = stdout.split('\n');
-        console.log('Inspecting STDOUT lines:');
-        stdoutLines.forEach(line => console.log(`Line: "${line}"`)); // Debug: Log each line
-        for (const line of stdoutLines) {
-            const match = line.match(/\[INFO\] Transposed matrix saved to: *([^\s]*out_\d+\.txt)/);
-            if (match) {
-                outputFilePath = match[1].trim();
-                break;
-            }
+    let outputFilePath = null;
+    const stdoutLines = stdout.split('\n');
+    console.log('Inspecting STDOUT lines:');
+    stdoutLines.forEach(line => console.log(`Line: "${line}"`)); // Debug: Log each line
+    for (const line of stdoutLines) {
+        const match = line.match(/\[INFO\] Transposed matrix saved to:([^\n]*)/);
+        if (match) {
+            outputFilePath = match[1].trim();
+            break;
         }
+    }
 
     console.log('==== File Processing Log ====');
     console.log('Command executed:', cmd);
