@@ -45,14 +45,14 @@ export const processUploadedFile = async (req, res) => {
 
     // 🔍 Поиск пути к выходному файлу
     let outputFilePath = null;
-    const stdoutLines = stdout.split('\n');
-    for (const line of stdoutLines) {
-        const match = line.match(/\[INFO\] Transposed matrix saved to: *(.*out_\d+\.txt)/);
-        if (match) {
-            outputFilePath = match[1].trim();
-            break;
+        const stdoutLines = stdout.split('\n');
+        for (const line of stdoutLines) {
+            const match = line.match(/\[INFO\] Transposed matrix saved to:(.*out_\d+\.txt)/);
+            if (match) {
+                outputFilePath = match[1].trim();
+                break;
+            }
         }
-    }
 
     console.log('==== File Processing Log ====');
     console.log('Command executed:', cmd);
