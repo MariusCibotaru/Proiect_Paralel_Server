@@ -2,7 +2,9 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import authRoutes from './routes/auth.js';
+import uploadRoutes from './routes/uploadRoutes.js'
 import { connectToDB } from './config/db.js';
+
 
 dotenv.config({ path: `.env.${process.env.NODE_ENV || 'development'}` });
 
@@ -18,6 +20,9 @@ app.use(
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+
+app.use('/api/file', uploadRoutes);
+
 
 app.get('/', (req, res) => {
   res.send('server ok');
