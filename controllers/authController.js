@@ -6,51 +6,60 @@ import jwt from 'jsonwebtoken';
 import path from 'path';
 import multer from 'multer';
 import fs from 'fs';
+import { sequelize } from '../config/db.js'; 
 const execAsync = util.promisify(exec);
 
 export const registerUser = async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
+  const transaction = await sequelize.transaction();
 
   try {
-    // Проверка в базе
-    const existingUser = await User.findOne({ where: { email } });
+    // Проверка существования в БД
+    const existingUser = await User.findOne({ where: { email }, transaction });
     if (existingUser) {
+      await transaction.rollback();
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Хеширование
     const saltRounds = Number(process.env.SALT_ROUNDS) || 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Создание в MySQL
-    const newUser = await User.create({
-      firstName,
-      lastName,
-      email,
-      passwordHash,
-    });
+    const newUser = await User.create(
+      {
+        firstName,
+        lastName,
+        email,
+        passwordHash,
+      },
+      { transaction }
+    );
 
-    // Безопасное имя для Linux-пользователя
     const linuxUsername = email.split('@')[0].replace(/\W/g, '_');
 
-    // Проверка существования
+    // Проверка, существует ли уже Linux-пользователь
     const { stdout } = await execAsync(`id -u ${linuxUsername}`).catch(() => ({ stdout: null }));
     if (stdout) {
+      await transaction.rollback();
       return res.status(400).json({ message: 'Linux user already exists' });
     }
 
-    // Создание пользователя в Linux
-    await execAsync(`sudo /usr/sbin/useradd -m -s /bin/bash ${linuxUsername}`);
-    await execAsync(`echo "${linuxUsername}:${password}" | sudo /usr/sbin/chpasswd`);
+    // 👇 ВСЁ НИЖЕ ДОЛЖНО МОЧЬ УПАСТЬ БЕЗ КРАША
+    try {
+      await execAsync(`sudo /usr/sbin/useradd -m -s /bin/bash ${linuxUsername}`);
+      await execAsync(`echo "${linuxUsername}:${password}" | sudo /usr/sbin/chpasswd`);
+      await execAsync(`sudo mkdir -p /home/${linuxUsername}/data /home/${linuxUsername}/results`);
+      await execAsync(`sudo chown -R vboxuser:vboxuser /home/${linuxUsername}/data /home/${linuxUsername}/results`);
+    } catch (sysError) {
+      console.error('System command failed:', sysError.message);
+      await transaction.rollback();
 
-    // создать data и results от имени пользователя, потом назначить права текущему пользователю
-    await execAsync(`sudo -u ${linuxUsername} mkdir -p /home/${linuxUsername}/data /home/${linuxUsername}/results`);
-    await execAsync(`sudo chown -R $(whoami):$(whoami) /home/${linuxUsername}/data /home/${linuxUsername}/results`);
+      // 💣 Дополнительно можно удалить Linux user, если `useradd` успел пройти:
+      await execAsync(`sudo /usr/sbin/userdel -r ${linuxUsername}`).catch(() => {});
 
+      return res.status(500).json({ message: 'Linux system error during user creation' });
+    }
 
-    // ➕ Создание папок data и results
-    await execAsync(`sudo -u ${linuxUsername} mkdir -p /home/${linuxUsername}/data /home/${linuxUsername}/results`);
-
+    await transaction.commit();
 
     return res.status(201).json({
       message: 'User created successfully',
@@ -62,6 +71,7 @@ export const registerUser = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+    await transaction.rollback();
     return res.status(500).json({ message: 'Server error during registration' });
   }
 };
