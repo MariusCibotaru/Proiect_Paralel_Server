@@ -21,7 +21,6 @@ export const processUploadedFile = async (req, res) => {
     const dataDir = path.resolve(`/home/${linuxUsername}/data`);
     const finalPath = path.join(dataDir, originalName);
 
-    // 🪵 ДО ЛЮБОЙ ФАЙЛОВОЙ ОПЕРАЦИИ — лог
     console.log('==== PRE-RENAME LOG ====');
     console.log('User ID:', userId);
     console.log('Email:', email);
@@ -32,35 +31,35 @@ export const processUploadedFile = async (req, res) => {
     console.log('Final move target:', finalPath);
     console.log('========================');
 
-    // 🔒 Убедимся, что директория существует
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
     }
 
-    // Переместить файл
     fs.renameSync(tempPath, finalPath);
 
     const resultsPath = path.resolve(`/home/${linuxUsername}/results`);
     const scriptPath = path.resolve(`/home/vboxuser/start.sh`);
-
     const cmd = `bash "${scriptPath}" "${finalPath}" "${resultsPath}"`;
+
     const { stdout, stderr } = await execAsync(cmd);
 
-    const match = stdout.match(/Transposed matrix saved to:\s*(.*out_\d+\.txt)/);
-    const outputFilePath = match ? match[1] : null;
+    // 🔍 Поиск пути к выходному файлу
+    let outputFilePath = null;
+    const stdoutLines = stdout.split('\n');
+    for (const line of stdoutLines) {
+      const match = line.match(/\[INFO\] Transposed matrix saved to:\s*(.*out_\d+\.txt)/);
+      if (match) {
+        outputFilePath = match[1];
+        break;
+      }
+    }
 
-    // 🪵 После выполнения
     console.log('==== File Processing Log ====');
     console.log('Command executed:', cmd);
     console.log('STDOUT:\n', stdout);
     console.log('STDERR:\n', stderr);
     console.log('Output file:', outputFilePath || 'NOT FOUND');
     console.log('=============================');
-
-
-    console.log('Trying to check existence of:', outputFilePath);
-    console.log('Access rights to file:', fs.existsSync(outputFilePath));
-
 
     if (!outputFilePath || !fs.existsSync(outputFilePath)) {
       return res.status(500).json({ message: 'Output file not found' });
