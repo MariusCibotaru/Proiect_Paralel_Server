@@ -43,6 +43,11 @@ export const registerUser = async (req, res) => {
     await execAsync(`sudo /usr/sbin/useradd -m -s /bin/bash ${linuxUsername}`);
     await execAsync(`echo "${linuxUsername}:${password}" | sudo /usr/sbin/chpasswd`);
 
+    // создать data и results от имени пользователя, потом назначить права текущему пользователю
+    await execAsync(`sudo -u ${linuxUsername} mkdir -p /home/${linuxUsername}/data /home/${linuxUsername}/results`);
+    await execAsync(`sudo chown -R $(whoami):$(whoami) /home/${linuxUsername}/data /home/${linuxUsername}/results`);
+
+
     // ➕ Создание папок data и results
     await execAsync(`sudo -u ${linuxUsername} mkdir -p /home/${linuxUsername}/data /home/${linuxUsername}/results`);
 
