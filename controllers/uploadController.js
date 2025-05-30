@@ -46,7 +46,7 @@ export const processUploadedFile = async (req, res) => {
     const cmd = `bash "${scriptPath}" "${finalPath}" "${resultsPath}"`;
     const { stdout, stderr } = await execAsync(cmd);
 
-    const match = stdout.match(/Result saved to:\s*(.*output_\d+\.root)/);
+    const match = stdout.match(/Result saved to:\s*(\/home\/[^ ]+\.root)/);
     const outputFilePath = match ? match[1] : null;
 
     // 🪵 После выполнения
