@@ -32,9 +32,6 @@ export const processUploadedFile = async (req, res) => {
     console.log('Final move target:', finalPath);
     console.log('========================');
 
-    console.log('Trying to check existence of:', outputFilePath);
-    console.log('Access rights to file:', fs.existsSync(outputFilePath));
-
     // 🔒 Убедимся, что директория существует
     if (!fs.existsSync(dataDir)) {
       fs.mkdirSync(dataDir, { recursive: true });
@@ -59,6 +56,11 @@ export const processUploadedFile = async (req, res) => {
     console.log('STDERR:\n', stderr);
     console.log('Output file:', outputFilePath || 'NOT FOUND');
     console.log('=============================');
+
+
+    console.log('Trying to check existence of:', outputFilePath);
+    console.log('Access rights to file:', fs.existsSync(outputFilePath));
+
 
     if (!outputFilePath || !fs.existsSync(outputFilePath)) {
       return res.status(500).json({ message: 'Output file not found' });
