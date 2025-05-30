@@ -8,16 +8,14 @@ const execAsync = util.promisify(exec);
 export const registerUser = async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
 
-  console.log('req.body', req.body)
-
   try {
-    // Проверка на существующего пользователя в базе
+    // Проверка в базе
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Хеш пароля
+    // Хеширование
     const saltRounds = Number(process.env.SALT_ROUNDS) || 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
@@ -29,15 +27,18 @@ export const registerUser = async (req, res) => {
       passwordHash,
     });
 
-    // Создание системного пользователя в Linux
-    const linuxUsername = email; // или использовать отдельное поле
+    // Безопасное имя для Linux-пользователя
+    const linuxUsername = email.split('@')[0].replace(/\W/g, '_');
+
+    // Проверка существования
     const { stdout } = await execAsync(`id -u ${linuxUsername}`).catch(() => ({ stdout: null }));
     if (stdout) {
       return res.status(400).json({ message: 'Linux user already exists' });
     }
 
-    await execAsync(`sudo useradd -m -s /bin/bash ${linuxUsername}`);
-    await execAsync(`echo "${linuxUsername}:${password}" | sudo chpasswd`);
+    // Создание пользователя в Linux
+    await execAsync(`sudo /usr/sbin/useradd -m -s /bin/bash ${linuxUsername}`);
+    await execAsync(`echo "${linuxUsername}:${password}" | sudo /usr/sbin/chpasswd`);
 
     return res.status(201).json({
       message: 'User created successfully',
