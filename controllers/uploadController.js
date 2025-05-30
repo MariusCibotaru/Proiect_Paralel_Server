@@ -49,7 +49,7 @@ export const processUploadedFile = async (req, res) => {
     for (const line of stdoutLines) {
       const match = line.match(/\[INFO\] Transposed matrix saved to:\s*(.*out_\d+\.txt)/);
       if (match) {
-        outputFilePath = match[1];
+        outputFilePath = match[1].trim();
         break;
       }
     }
