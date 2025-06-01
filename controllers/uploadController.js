@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { User } from '../models/User.js';
 import { exec } from 'child_process';
+import { AuditLog } from '../models/AuditLog.js';
 import util from 'util';
 const execAsync = util.promisify(exec);
 
@@ -66,6 +67,14 @@ export const processUploadedFile = async (req, res) => {
     if (!outputFilePath || !fs.existsSync(outputFilePath)) {
       return res.status(500).json({ message: 'Output file not found' });
     }
+
+    // ✅ Запись в AuditLog
+    await AuditLog.create({
+      userId,
+      userLinuxName: linuxUsername,
+      action: 'matrix', 
+      timestamp: new Date(),
+    });
 
     return res.download(outputFilePath);
 
