@@ -40,7 +40,7 @@ export const processUploadedFile = async (req, res) => {
 
     const resultsPath = path.resolve(`/home/${linuxUsername}/results`);
     const scriptPath = path.resolve(`/home/vboxuser/start.sh`);
-    const cmd = `bash "${scriptPath}" "${finalPath}" "${resultsPath}"`;
+    const cmd = `bash "${scriptPath}" "matrix" "${finalPath}" "${resultsPath}"`;
 
     const { stdout, stderr } = await execAsync(cmd);
 
