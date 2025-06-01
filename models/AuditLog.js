@@ -12,7 +12,7 @@ export const AuditLog = sequelize.define('AuditLog', {
     allowNull: false,
   },
   action: {
-    type: DataTypes.ENUM('matrix'), 
+    type: DataTypes.ENUM('matrix', 'matrix_operations'),
     allowNull: false,
   },
   timestamp: {

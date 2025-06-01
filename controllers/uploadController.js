@@ -9,6 +9,13 @@ const execAsync = util.promisify(exec);
 export const processUploadedFile = async (req, res) => {
   try {
     const userId = req.userId;
+    const { serviceType } = req.body;
+    const allowedTypes = ['matrix', 'matrix_operations'];
+
+    if (!allowedTypes.includes(serviceType)) {
+      return res.status(400).json({ message: 'Invalid service type' });
+    }
+
     const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -19,6 +26,11 @@ export const processUploadedFile = async (req, res) => {
 
     const tempPath = req.file.path;
     const originalName = req.file.originalname;
+
+    if (!originalName.toLowerCase().endsWith('.txt')) {
+      return res.status(400).json({ message: 'Only .txt files are allowed' });
+    }
+    
     const dataDir = path.resolve(`/home/${linuxUsername}/data`);
     const finalPath = path.join(dataDir, originalName);
 
@@ -40,7 +52,7 @@ export const processUploadedFile = async (req, res) => {
 
     const resultsPath = path.resolve(`/home/${linuxUsername}/results`);
     const scriptPath = path.resolve(`/home/vboxuser/start.sh`);
-    const cmd = `bash "${scriptPath}" "matrix" "${finalPath}" "${resultsPath}"`;
+    const cmd = `bash "${scriptPath}" "${serviceType}" "${finalPath}" "${resultsPath}"`;
 
     const { stdout, stderr } = await execAsync(cmd);
 
@@ -72,7 +84,7 @@ export const processUploadedFile = async (req, res) => {
     await AuditLog.create({
       userId,
       userLinuxName: linuxUsername,
-      action: 'matrix', 
+      action: serviceType,
       timestamp: new Date(),
     });
 
